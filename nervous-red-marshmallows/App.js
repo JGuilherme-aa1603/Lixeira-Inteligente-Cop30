@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Text,
   View,
@@ -13,12 +13,13 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
-import { encode } from 'base-64'; 
+import { encode } from 'base-64';
 
+import categorias_lixo from './categorias_lixo.json';
 
 const IMAGGA_API = {
-  key: 'acc_a98ad914cea7701', 
-  secret: '45617f3daca1b07c5711262f4d8c8732', 
+  key: 'acc_a98ad914cea7701',
+  secret: '45617f3daca1b07c5711262f4d8c8732',
 };
 
 // --- Ícones Simples (Emojis) ---
@@ -34,161 +35,56 @@ const binIcons = {
   desconhecido: '❓',
 };
 
-// --- Dados dos Resíduos ---
-export const wasteData = {
-  // --- Plásticos ---
-  'garrafa pet': {
-    type: 'plastico',
-    name: 'Plástico (Garrafa PET)',
-    instructions: 'Esvazie, amasse e tampe. Descarte no cesto de PLÁSTICOS.',
-    impact: 'A reciclagem de PET reduz a poluição e a necessidade de extrair mais petróleo.',
-    imageKeywords: ['garrafa', 'pet', 'plástico', 'refrigerante', 'água', 'bebida'],
-  },
-  'embalagem de iogurte': {
-    type: 'plastico',
-    name: 'Plástico (Embalagem de Iogurte)',
-    instructions: 'Lave para remover resíduos orgânicos. Descarte no cesto de PLÁSTICOS.',
-    impact: 'Reciclar plástico economiza recursos naturais e energia.',
-    imageKeywords: ['iogurte', 'pote', 'plástico', 'embalagem', 'lácteo'],
-  },
-  'sacolas plásticas': {
-    type: 'plastico',
-    name: 'Plástico (Sacolas Plásticas)',
-    instructions: 'Reutilize sempre que possível. Descarte no cesto de PLÁSTICOS.',
-    impact: 'A reciclagem das sacolas ajuda a reduzir a poluição ambiental.',
-    imageKeywords: ['sacola', 'plástica', 'supermercado', 'reutilizável'],
-  },
-  'canudos plásticos': {
-    type: 'plastico',
-    name: 'Plástico (Canudos)',
-    instructions: 'Evite o uso sempre que possível. Descarte no cesto de PLÁSTICOS.',
-    impact: 'Canudos plásticos poluem oceanos e prejudicam a vida marinha.',
-    imageKeywords: ['canudo', 'plástico', 'descartável'],
-  },
-  'embalagem de shampoo': {
-    type: 'plastico',
-    name: 'Plástico (Embalagem de Shampoo)',
-    instructions: 'Lave para remover o resíduo. Descarte no cesto de PLÁSTICOS.',
-    impact: 'Plásticos reciclados economizam energia e reduzem poluição.',
-    imageKeywords: ['shampoo', 'embalagem', 'plástico', 'cosmético'],
-  },
-  'tampas de garrafa': {
-    type: 'plastico',
-    name: 'Plástico (Tampas de Garrafa)',
-    instructions: 'Separe e descarte no cesto de PLÁSTICOS.',
-    impact: 'Reciclagem de tampas reduz a produção de plásticos novos.',
-    imageKeywords: ['tampa', 'garrafa', 'plástico'],
-  },
+// --- Cores dos Lixos ---
+const binColors = {
+  papel: '🟦',
+  plastico: '🟥',
+  vidro: '🟩',
+  metal: '🟨',
+  organico: '🟫',
+  eletronico: '⬜',
+  perigoso: '⬛',
+  nao_reciclavel: '⬛',
+  desconhecido: 'Descarte Desconhecido ❓',
+};
 
-  // --- Metais ---
-  'lata de refrigerante': {
-    type: 'metal',
-    name: 'Metal (Lata de Refrigerante)',
-    instructions: 'Amasse para reduzir o volume. Descarte no cesto de METAIS.',
-    impact: 'Reciclar alumínio economiza até 95% da energia necessária para produzir o metal do zero.',
-    imageKeywords: ['lata', 'alumínio', 'refrigerante', 'cerveja', 'bebida'],
-  },
-  'lata de alimentos': {
-    type: 'metal',
-    name: 'Metal (Lata de Alimentos)',
-    instructions: 'Lave para remover resíduos de alimentos. Descarte no cesto de METAIS.',
-    impact: 'A reciclagem de latas economiza recursos minerais e energia.',
-    imageKeywords: ['lata', 'alimentos', 'conserva', 'metal', 'feijão', 'ervilha'],
-  },
-  'panelas de alumínio': {
-    type: 'metal',
-    name: 'Metal (Panelas de Alumínio)',
-    instructions: 'Certifique-se de que estão limpas. Descarte no cesto de METAIS.',
-    impact: 'Reciclagem de alumínio economiza recursos naturais e energia.',
-    imageKeywords: ['panela', 'alumínio', 'cozinha', 'metal'],
-  },
+const categoryMap = {
+  papel: categorias_lixo.paper,
+  plastico: categorias_lixo.plastic,
+  vidro: categorias_lixo.glass,
+  metal: categorias_lixo.metal,
+  organico: categorias_lixo.organic,
+  eletronico: categorias_lixo.electronic,
+  perigoso: categorias_lixo.hazardous,
+  nao_reciclavel: categorias_lixo.non_recyclable,
+};
 
-  // --- Vidros ---
-  'garrafa de vidro': {
-    type: 'vidro',
-    name: 'Vidro (Garrafa)',
-    instructions: 'Certifique-se de que está vazio. Descarte no cesto de VIDRO.',
-    impact: 'O vidro é 100% reciclável e pode ser reutilizado infinitamente.',
-    imageKeywords: ['garrafa', 'vidro', 'transparente', 'cerveja', 'vinho'],
-  },
-  'vidro quebrado': {
-    type: 'vidro',
-    name: 'Vidro (Objetos Quebrados)',
-    instructions: 'Embale cuidadosamente em jornal antes de descartar no cesto de VIDRO.',
-    impact: 'Vidro reciclado reduz o consumo de energia na produção de novos produtos.',
-    imageKeywords: ['vidro', 'cacos', 'quebrado', 'garrafa'],
-  },
+// Função para encontrar a categoria por tags
+const findCategoryByTags = (tags) => {
+  if (!tags || tags.length === 0) return null;
 
-  // --- Papéis ---
-  'papelão': {
-    type: 'papel',
-    name: 'Papelão',
-    instructions: 'Desmonte caixas para economizar espaço. Descarte no cesto de PAPEL.',
-    impact: 'A reciclagem de papelão ajuda a reduzir o desmatamento e economizar energia.',
-    imageKeywords: ['caixa', 'papelão', 'embalagem', 'papel'],
-  },
-  'papel de escritório': {
-    type: 'papel',
-    name: 'Papel (Papel de Escritório)',
-    instructions: 'Não amasse. Descarte no cesto de PAPEL.',
-    impact: 'A reciclagem de papel economiza árvores, água e energia.',
-    imageKeywords: ['papel', 'escritório', 'sulfite', 'documento'],
-  },
-  'jornais': {
-    type: 'papel',
-    name: 'Papel (Jornais)',
-    instructions: 'Empilhe e descarte no cesto de PAPEL.',
-    impact: 'Jornais reciclados ajudam a reduzir o desperdício de papel.',
-    imageKeywords: ['jornal', 'papel', 'notícia'],
-  },
+  const lowerCaseTags = tags.map((tag) => tag.toLowerCase());
+  
+  // Itera sobre as categorias para encontrar a melhor correspondência
+  let bestCategory = 'desconhecido';
+  let maxMatches = 0;
 
-  // --- Orgânicos ---
-  'casca de banana': {
-    type: 'organico',
-    name: 'Orgânico (Casca de Banana)',
-    instructions: 'Descarte no cesto de ORGÂNICOS para compostagem.',
-    impact: 'A compostagem reduz o metano em aterros e cria adubo natural.',
-    imageKeywords: ['banana', 'casca', 'fruta', 'orgânico'],
-  },
-  'restos de comida': {
-    type: 'organico',
-    name: 'Orgânico (Restos de Comida)',
-    instructions: 'Descarte no cesto de ORGÂNICOS ou utilize para compostagem.',
-    impact: 'A compostagem de resíduos orgânicos reduz o impacto ambiental.',
-    imageKeywords: ['comida', 'restos', 'alimento', 'orgânico'],
-  },
+for (const [category, keywords] of Object.entries(categoryMap)) {
+  // Verifica se keywords está definido e é um array
+  if (!Array.isArray(keywords) || keywords.length === 0) {
+    console.warn(`A categoria "${category}" não possui palavras-chave definidas.`);
+    continue; // Pula para a próxima categoria
+  }
 
-  // --- Eletrônicos ---
-  'pilha': {
-    type: 'eletronico',
-    name: 'Lixo Eletrônico (Pilha)',
-    instructions: 'Procure pontos de coleta específicos. Não descarte no lixo comum.',
-    impact: 'Pilhas contêm metais pesados que contaminam o solo e a água.',
-    imageKeywords: ['pilha', 'bateria', 'energia', 'perigoso'],
-  },
-  'celular quebrado': {
-    type: 'eletronico',
-    name: 'Lixo Eletrônico (Celular Quebrado)',
-    instructions: 'Leve a um ponto de coleta de lixo eletrônico.',
-    impact: 'O descarte correto evita a contaminação por metais pesados.',
-    imageKeywords: ['celular', 'smartphone', 'eletrônico', 'quebrado'],
-  },
+  const matches = lowerCaseTags.filter((tag) => keywords.includes(tag)).length;
 
-  // --- Não Recicláveis ---
-  'bituca de cigarro': {
-    type: 'nao_reciclavel',
-    name: 'Rejeito (Bituca de Cigarro)',
-    instructions: 'Apague bem antes de descartar no lixo comum.',
-    impact: 'As bitucas contêm toxinas que poluem o solo e a água.',
-    imageKeywords: ['bituca', 'cigarro', 'tabaco'],
-  },
-  'guardanapo sujo': {
-    type: 'nao_reciclavel',
-    name: 'Rejeito (Guardanapo Sujo)',
-    instructions: 'Descarte no lixo comum. Não misture com recicláveis.',
-    impact: 'Guardanapos sujos contaminam materiais recicláveis.',
-    imageKeywords: ['guardanapo', 'sujo', 'papel'],
-  },
+  if (matches > maxMatches) {
+    maxMatches = matches;
+    bestCategory = category;
+  }
+}
+
+  return bestCategory;
 };
 
 // --- Componente Principal ---
@@ -250,37 +146,6 @@ export default function App() {
     }
   };
 
-  // Função para encontrar item por tags
-  const findItemByTags = (tags) => {
-    if (!tags || tags.length === 0) return null;
-
-    let bestMatch = null;
-    let maxMatches = 0;
-
-    const lowerCaseTags = tags.map((tag) => tag.toLowerCase());
-
-    for (const key in wasteData) {
-      const item = wasteData[key];
-      let currentMatches = 0;
-      const itemKeywords = item.imageKeywords.map((kw) => kw.toLowerCase());
-
-      lowerCaseTags.forEach((tag) => {
-        if (itemKeywords.includes(tag)) {
-          currentMatches++;
-        } else if (itemKeywords.some((kw) => kw.includes(tag))) {
-          currentMatches += 0.5;
-        }
-      });
-
-      if (currentMatches > maxMatches) {
-        maxMatches = currentMatches;
-        bestMatch = item;
-      }
-    }
-
-    return maxMatches >= 1 ? bestMatch : null;
-  };
-
   // Função para analisar imagem com tags
   const simulateImageAnalysisWithTags = async (imageUri) => {
     setIsLoading(true);
@@ -303,16 +168,23 @@ export default function App() {
       });
 
       const tags = response.data.result.tags.map((tag) => tag.tag.en.toLowerCase());
-      const foundItem = findItemByTags(tags);
+      const foundCategory = findCategoryByTags(tags);
 
-      if (foundItem) {
-        setResult(foundItem);
+      if (foundCategory && foundCategory !== 'desconhecido') {
+        setResult({
+          type: foundCategory,
+          name: `Categoria: ${foundCategory.toUpperCase()}`,
+          instructions: `Descarte no cesto correspondente à categoria ${foundCategory.toUpperCase()}.`,
+          impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
+          binColor: binColors[foundCategory],
+        });
       } else {
         setResult({
           type: 'desconhecido',
-          name: 'Item não identificado',
+          name: 'Categoria não identificada',
           instructions: 'Tente tirar outra foto mais clara ou digite o nome do item.',
           impact: 'O reconhecimento de itens melhora com imagens bem iluminadas e nítidas.',
+          binColor: binColors['desconhecido'],
         });
       }
     } catch (error) {
@@ -335,21 +207,24 @@ export default function App() {
 
     setTimeout(() => {
       const searchName = itemName.toLowerCase().trim();
-      let foundItem = wasteData[searchName];
+      const searchTags = searchName.split(/[\s,]+/);
+      const foundCategory = findCategoryByTags(searchTags);
 
-      if (!foundItem) {
-        const searchTags = searchName.split(/[\s,]+/);
-        foundItem = findItemByTags(searchTags);
-      }
-
-      if (foundItem) {
-        setResult(foundItem);
+      if (foundCategory && foundCategory !== 'desconhecido') {
+        setResult({
+          type: foundCategory,
+          name: `Categoria: ${foundCategory.toUpperCase()}`,
+          instructions: `Descarte no cesto correspondente à categoria ${foundCategory.toUpperCase()}.`,
+          impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
+          binColor: binColors[foundCategory],
+        });
       } else {
         setResult({
           type: 'desconhecido',
-          name: 'Item não encontrado',
-          instructions: 'Não encontramos este item. Verifique a ortografia ou tente termos mais genéricos.',
+          name: 'Categoria não encontrada',
+          instructions: 'Não encontramos esta categoria. Verifique a ortografia ou tente termos mais genéricos.',
           impact: 'Cada resíduo no lugar certo faz a diferença!',
+          binColor: binColors['desconhecido'],
         });
       }
       setIsLoading(false);
@@ -404,6 +279,7 @@ export default function App() {
           <Text style={styles.resultText}>{result.name}</Text>
           <Text style={styles.resultText}>{result.instructions}</Text>
           <Text style={styles.resultText}>{result.impact}</Text>
+          <Text style={styles.resultText}>Cor do Lixo: {result.binColor}</Text>
         </View>
       )}
     </ScrollView>
