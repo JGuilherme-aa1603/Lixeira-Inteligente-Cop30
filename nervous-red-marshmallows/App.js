@@ -48,6 +48,19 @@ const binColors = {
   desconhecido: 'Descarte Desconhecido ❓',
 };
 
+
+const discardInstructions = {
+  papel: 'Descarte papel limpo e seco na lixeira azul. Evite papéis engordurados, papel higiênico ou guardanapos usados. Caixas de pizza engorduradas vão no lixo comum.',
+  plastico: 'Descarte plásticos limpos e secos na lixeira vermelha. Lave embalagens e retire restos de alimentos. Plásticos sujos ou com resíduos devem ir para o lixo comum.',
+  vidro: 'Descarte vidros inteiros e limpos na lixeira verde. Vidro quebrado deve ser embalado em papel grosso ou caixa, identificado e descartado no lixo comum para evitar acidentes. Não descarte espelhos, cerâmicas ou lâmpadas junto com vidro.',
+  metal: 'Descarte latas e metais limpos na lixeira amarela. Lave as latas e amasse para economizar espaço. Objetos cortantes (como lâminas) devem ser embalados e identificados antes do descarte.',
+  organico: 'Descarte restos de alimentos, cascas, borra de café e chá na lixeira marrom. Evite colocar plásticos, metais ou vidros junto com o lixo orgânico.',
+  eletronico: 'Descarte eletrônicos, pilhas e baterias em pontos de coleta específicos para lixo eletrônico. Nunca descarte esses itens no lixo comum ou reciclável.',
+  perigoso: 'Descarte resíduos perigosos (pilhas, baterias, remédios vencidos, lâmpadas fluorescentes) em locais apropriados, como farmácias ou pontos de coleta autorizados.',
+  nao_reciclavel: 'Descarte resíduos não recicláveis (papel carbono, fotografias, esponjas, papel higiênico usado) na lixeira cinza ou comum.',
+  desconhecido: 'Tente identificar melhor o item ou procure orientação sobre o descarte correto. Em caso de dúvida, consulte a prefeitura ou pontos de coleta especializados.',
+};
+
 const categoryMap = {
   papel: categorias_lixo.paper,
   plastico: categorias_lixo.plastic,
@@ -174,7 +187,7 @@ export default function App() {
         setResult({
           type: foundCategory,
           name: `Categoria: ${foundCategory.toUpperCase()}`,
-          instructions: `Descarte no cesto correspondente à categoria ${foundCategory.toUpperCase()}.`,
+          instructions: discardInstructions[foundCategory],
           impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
           binColor: binColors[foundCategory],
         });
@@ -182,7 +195,7 @@ export default function App() {
         setResult({
           type: 'desconhecido',
           name: 'Categoria não identificada',
-          instructions: 'Tente tirar outra foto mais clara ou digite o nome do item.',
+          instructions: discardInstructions['desconhecido'],
           impact: 'O reconhecimento de itens melhora com imagens bem iluminadas e nítidas.',
           binColor: binColors['desconhecido'],
         });
@@ -214,7 +227,7 @@ export default function App() {
         setResult({
           type: foundCategory,
           name: `Categoria: ${foundCategory.toUpperCase()}`,
-          instructions: `Descarte no cesto correspondente à categoria ${foundCategory.toUpperCase()}.`,
+          instructions: discardInstructions[foundCategory], // <-- Troque aqui!
           impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
           binColor: binColors[foundCategory],
         });
@@ -222,7 +235,7 @@ export default function App() {
         setResult({
           type: 'desconhecido',
           name: 'Categoria não encontrada',
-          instructions: 'Não encontramos esta categoria. Verifique a ortografia ou tente termos mais genéricos.',
+          instructions: discardInstructions['desconhecido'],
           impact: 'Cada resíduo no lugar certo faz a diferença!',
           binColor: binColors['desconhecido'],
         });
