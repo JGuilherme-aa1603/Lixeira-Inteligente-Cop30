@@ -1,11 +1,36 @@
-# Sample Snack app
+# Lixeira Inteligente ♻️
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+Este é um app inteligente para ajudar você a descartar resíduos corretamente, usando inteligência artificial (OpenAI GPT-4o) para identificar o tipo de lixo a partir de texto ou imagem.
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo cli](https://docs.expo.dev/get-started/installation/#expo-cli)).
+## Como funciona?
+- Envie uma foto ou digite o nome do resíduo.
+- A IA retorna um emoji, a categoria, instrução de descarte e a cor da lixeira correta, tudo de forma compacta e amigável.
 
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
+## Principais recursos
+- Reconhecimento de resíduos por texto ou imagem (GPT-4o)
+- Resposta direta: emoji, categoria, instrução e cor da lixeira
+- Interface simples, rápida e responsiva
+- Sem dependências externas de classificação (ex: Imagga)
 
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.dev/c/expo-dev-tools/61) or [Discord](https://chat.expo.dev/).
+## Como rodar
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+2. Adicione sua chave da OpenAI no arquivo `openai.config.js` (este arquivo está no .gitignore por segurança).
 
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+3. Inicie o app:
+   ```bash
+   npx expo start
+   ```
+
+## Futuras melhorias
+- Histórico de consultas
+- Compartilhamento
+- Reconhecimento por voz
+- Pontos de coleta próximos
+- Gamificação e feedback
+
+---
+
+Desenvolvido para facilitar o descarte consciente e sustentável! 🌱
