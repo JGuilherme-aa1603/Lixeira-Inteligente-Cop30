@@ -14,100 +14,17 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { encode } from 'base-64';
+import { OPENAI_API_KEY } from './openai.config';
 
 import categorias_lixo from './categorias_lixo.json';
 
-const IMAGGA_API = {
-  key: 'acc_a98ad914cea7701',
-  secret: '45617f3daca1b07c5711262f4d8c8732',
-};
 
-// --- Ícones Simples (Emojis) ---
-const binIcons = {
-  papel: '📰',
-  plastico: '🧴',
-  vidro: '🍾',
-  metal: '🥫',
-  organico: '🍎',
-  eletronico: '🔋',
-  perigoso: '☣️',
-  nao_reciclavel: '🗑️',
-  desconhecido: '❓',
-};
-
-// --- Cores dos Lixos ---
-const binColors = {
-  papel: '🟦',
-  plastico: '🟥',
-  vidro: '🟩',
-  metal: '🟨',
-  organico: '🟫',
-  eletronico: '⬜',
-  perigoso: '⬛',
-  nao_reciclavel: '⬛',
-  desconhecido: 'Descarte Desconhecido ❓',
-};
-
-
-const discardInstructions = {
-  papel: 'Descarte papel limpo e seco na lixeira azul. Evite papéis engordurados, papel higiênico ou guardanapos usados. Caixas de pizza engorduradas vão no lixo comum.',
-  plastico: 'Descarte plásticos limpos e secos na lixeira vermelha. Lave embalagens e retire restos de alimentos. Plásticos sujos ou com resíduos devem ir para o lixo comum.',
-  vidro: 'Descarte vidros inteiros e limpos na lixeira verde. Vidro quebrado deve ser embalado em papel grosso ou caixa, identificado e descartado no lixo comum para evitar acidentes. Não descarte espelhos, cerâmicas ou lâmpadas junto com vidro.',
-  metal: 'Descarte latas e metais limpos na lixeira amarela. Lave as latas e amasse para economizar espaço. Objetos cortantes (como lâminas) devem ser embalados e identificados antes do descarte.',
-  organico: 'Descarte restos de alimentos, cascas, borra de café e chá na lixeira marrom. Evite colocar plásticos, metais ou vidros junto com o lixo orgânico.',
-  eletronico: 'Descarte eletrônicos, pilhas e baterias em pontos de coleta específicos para lixo eletrônico. Nunca descarte esses itens no lixo comum ou reciclável.',
-  perigoso: 'Descarte resíduos perigosos (pilhas, baterias, remédios vencidos, lâmpadas fluorescentes) em locais apropriados, como farmácias ou pontos de coleta autorizados.',
-  nao_reciclavel: 'Descarte resíduos não recicláveis (papel carbono, fotografias, esponjas, papel higiênico usado) na lixeira cinza ou comum.',
-  desconhecido: 'Tente identificar melhor o item ou procure orientação sobre o descarte correto. Em caso de dúvida, consulte a prefeitura ou pontos de coleta especializados.',
-};
-
-const categoryMap = {
-  papel: categorias_lixo.paper,
-  plastico: categorias_lixo.plastic,
-  vidro: categorias_lixo.glass,
-  metal: categorias_lixo.metal,
-  organico: categorias_lixo.organic,
-  eletronico: categorias_lixo.electronic,
-  perigoso: categorias_lixo.hazardous,
-  nao_reciclavel: categorias_lixo.non_recyclable,
-};
-
-// Função para encontrar a categoria por tags
-const findCategoryByTags = (tags) => {
-  if (!tags || tags.length === 0) return null;
-
-  const lowerCaseTags = tags.map((tag) => tag.toLowerCase());
-  
-  // Itera sobre as categorias para encontrar a melhor correspondência
-  let bestCategory = 'desconhecido';
-  let maxMatches = 0;
-
-for (const [category, keywords] of Object.entries(categoryMap)) {
-  // Verifica se keywords está definido e é um array
-  if (!Array.isArray(keywords) || keywords.length === 0) {
-    console.warn(`A categoria "${category}" não possui palavras-chave definidas.`);
-    continue; // Pula para a próxima categoria
-  }
-
-  const matches = lowerCaseTags.filter((tag) => keywords.includes(tag)).length;
-
-  if (matches > maxMatches) {
-    maxMatches = matches;
-    bestCategory = category;
-  }
-}
-
-  return bestCategory;
-};
-
-// --- Componente Principal ---
 export default function App() {
   const [itemName, setItemName] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Solicitar permissões de câmera e galeria
   useEffect(() => {
     (async () => {
       if (Platform.OS !== 'web') {
@@ -123,7 +40,6 @@ export default function App() {
     })();
   }, []);
 
-  // Função para selecionar imagem da galeria
   const pickImageAsync = async () => {
     setResult(null);
     setItemName('');
@@ -141,7 +57,6 @@ export default function App() {
     }
   };
 
-  // Função para tirar foto
   const takePhotoAsync = async () => {
     setResult(null);
     setItemName('');
@@ -159,57 +74,69 @@ export default function App() {
     }
   };
 
-  // Função para analisar imagem com tags
-  const simulateImageAnalysisWithTags = async (imageUri) => {
+  const analyzeImageWithOpenAI = async (imageUri) => {
     setIsLoading(true);
     setResult(null);
-
     try {
-      const auth = encode(`${IMAGGA_API.key}:${IMAGGA_API.secret}`);
-      const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        name: 'image.jpg',
-        type: 'image/jpeg',
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
       });
+      reader.readAsDataURL(blob);
+      const base64Image = await base64Promise;
 
-      const response = await axios.post('https://api.imagga.com/v2/tags', formData, {
-        headers: {
-          Authorization: `Basic ${auth}`,
-          'Content-Type': 'multipart/form-data',
+
+      const openaiResponse = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um especialista em reciclagem e descarte correto de resíduos. Ao receber uma imagem de um objeto, responda SEMPRE no formato:\nEmoji: [um emoji que representa o objeto ou resíduo]\nInstruções: [explicação detalhada em português de como descartar corretamente, com dicas e locais apropriados].'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Explique como descartar corretamente o objeto da imagem, com dicas e instruções detalhadas.' },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+              ]
+            }
+          ],
+          max_tokens: 350
         },
+        {
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const resposta = openaiResponse.data.choices[0].message.content.trim();
+      const emojiMatch = resposta.match(/Emoji:\s*([\p{Emoji_Presentation}\p{Extended_Pictographic}])/u);
+      const instrucoesMatch = resposta.match(/Instruções:\s*([\s\S]*)/i);
+      setResult({
+        emoji: emojiMatch ? emojiMatch[1] : '❓',
+        name: 'Instruções de Descarte',
+        instructions: instrucoesMatch ? instrucoesMatch[1].trim() : resposta,
+        impact: '',
+        binColor: '',
       });
-
-      const tags = response.data.result.tags.map((tag) => tag.tag.en.toLowerCase());
-      const foundCategory = findCategoryByTags(tags);
-
-      if (foundCategory && foundCategory !== 'desconhecido') {
-        setResult({
-          type: foundCategory,
-          name: `Categoria: ${foundCategory.toUpperCase()}`,
-          instructions: discardInstructions[foundCategory],
-          impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
-          binColor: binColors[foundCategory],
-        });
-      } else {
-        setResult({
-          type: 'desconhecido',
-          name: 'Categoria não identificada',
-          instructions: discardInstructions['desconhecido'],
-          impact: 'O reconhecimento de itens melhora com imagens bem iluminadas e nítidas.',
-          binColor: binColors['desconhecido'],
-        });
-      }
     } catch (error) {
-      console.error('Erro ao analisar imagem:', error);
+      console.error('Erro ao analisar imagem com OpenAI:', error?.response?.data || error);
       Alert.alert('Erro', 'Ocorreu um erro ao processar a imagem. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Função para busca por texto
-  const handleTextSearch = () => {
+  const simulateImageAnalysisWithTags = analyzeImageWithOpenAI;
+
+  const handleTextSearch = async () => {
     if (!itemName.trim()) {
       Alert.alert('Entrada Inválida', 'Por favor, digite o nome de um item.');
       return;
@@ -218,30 +145,47 @@ export default function App() {
     setIsLoading(true);
     setResult(null);
 
-    setTimeout(() => {
-      const searchName = itemName.toLowerCase().trim();
-      const searchTags = searchName.split(/[\s,]+/);
-      const foundCategory = findCategoryByTags(searchTags);
+    try {
+      const openaiResponse = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um especialista em reciclagem e descarte correto de resíduos. Ao receber o nome de um objeto, responda SEMPRE no formato:\nEmoji: [um emoji que representa o objeto ou resíduo]\nInstruções: [explicação direta, curta, amigável e em português de como descartar corretamente, com dicas e locais apropriados]. Seja objetivo, prático e incentive o descarte correto.'
+            },
+            {
+              role: 'user',
+              content: `Explique como descartar corretamente: ${itemName}`
+            }
+          ],
+          max_tokens: 300
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (foundCategory && foundCategory !== 'desconhecido') {
-        setResult({
-          type: foundCategory,
-          name: `Categoria: ${foundCategory.toUpperCase()}`,
-          instructions: discardInstructions[foundCategory], // <-- Troque aqui!
-          impact: 'Separar resíduos corretamente ajuda a preservar o meio ambiente.',
-          binColor: binColors[foundCategory],
-        });
-      } else {
-        setResult({
-          type: 'desconhecido',
-          name: 'Categoria não encontrada',
-          instructions: discardInstructions['desconhecido'],
-          impact: 'Cada resíduo no lugar certo faz a diferença!',
-          binColor: binColors['desconhecido'],
-        });
-      }
+      const resposta = openaiResponse.data.choices[0].message.content.trim();
+      const emojiMatch = resposta.match(/Emoji:\s*([\p{Emoji_Presentation}\p{Extended_Pictographic}])/u);
+      const instrucoesMatch = resposta.match(/Instruções:\s*([\s\S]*)/i);
+      setResult({
+        emoji: emojiMatch ? emojiMatch[1] : '❓',
+        name: 'Instruções de Descarte',
+        instructions: instrucoesMatch ? instrucoesMatch[1].trim() : resposta,
+        impact: '',
+        binColor: '',
+      });
+    } catch (error) {
+      console.error('Erro ao analisar texto com OpenAI:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao processar o texto. Por favor, tente novamente.');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -288,11 +232,17 @@ export default function App() {
       {result && (
         <View style={styles.resultSection}>
           <Text style={styles.resultTitle}>Resultado:</Text>
-          <Text style={styles.binIcon}>{binIcons[result.type]}</Text>
+          <Text style={styles.binIcon}>{result.emoji}</Text>
           <Text style={styles.resultText}>{result.name}</Text>
-          <Text style={styles.resultText}>{result.instructions}</Text>
-          <Text style={styles.resultText}>{result.impact}</Text>
-          <Text style={styles.resultText}>Cor do Lixo: {result.binColor}</Text>
+          {result.instructions
+            .replace(/[#*]+/g, '')
+            .split(/\n{2,}|\r{2,}|\r\n{2,}/)
+            .map((par, idx) => (
+              <Text key={idx} style={styles.resultInstruction}>
+                {par.trim().replace(/(dica:|atenção:|importante:)/gi, match => `\u2022 ${match.toUpperCase()}`)}
+              </Text>
+            ))}
+          {result.impact ? <Text style={styles.resultImpact}>{result.impact}</Text> : null}
         </View>
       )}
     </ScrollView>
@@ -378,5 +328,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginVertical: 5,
+  },
+  resultInstruction: {
+    fontSize: 15,
+    textAlign: 'left',
+    marginVertical: 1,
+    color: '#2c3e50',
+    backgroundColor: '#eaf6fb',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    width: '98%',
+    maxWidth: '98%',
+    alignSelf: 'center',
+    flexWrap: 'wrap', 
+  },
+  resultImpact: {
+    fontSize: 15,
+    color: '#16a085',
+    fontWeight: 'bold',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
